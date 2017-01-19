@@ -20,10 +20,10 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let motionManager = CMMotionManager()
-        if motionManager.accelerometerAvailable {
+        if motionManager.isAccelerometerAvailable {
             motionManager.accelerometerUpdateInterval = 0.2
-            let queue = NSOperationQueue.mainQueue()
-            motionManager.startDeviceMotionUpdatesToQueue(queue, withHandler: accelerometerHandler)
+            let queue = OperationQueue.main
+            motionManager.startDeviceMotionUpdates(to: queue, withHandler: accelerometerHandler as! CMDeviceMotionHandler)
         }
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tapGestureHandler(_:)))
         view.addGestureRecognizer(tapGesture)
@@ -39,7 +39,7 @@ class ViewController: UIViewController {
         animator.addBehavior(itemBehaviour)
     }
     
-    func accelerometerHandler(data: CMDeviceMotion?, error: NSError?) {
+    func accelerometerHandler(_ data: CMDeviceMotion?, error: NSError?) {
         if (error != nil) {
             NSLog("\(error)")
         }
@@ -49,13 +49,13 @@ class ViewController: UIViewController {
         let x = CGFloat(grav.x);
         let y = CGFloat(grav.y);
         
-        let v = CGVectorMake(x, y);
+        let v = CGVector(dx: x, dy: y);
         gravity.gravityDirection = v;
     }
     
-    func tapGestureHandler(gesture: UITapGestureRecognizer) {
-        if gesture.state == .Ended {
-            let obj = FormObject.init(x: gesture.locationInView(view).x, y: gesture.locationInView(view).y)
+    func tapGestureHandler(_ gesture: UITapGestureRecognizer) {
+        if gesture.state == .ended {
+            let obj = FormObject.init(x: gesture.location(in: view).x, y: gesture.location(in: view).y)
             let panGesture = UIPanGestureRecognizer(target: self, action: #selector(panGestureHandler(_:)))
             let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(pinchGestureHandler(_:)))
             let rotateGesture = UIRotationGestureRecognizer(target: self, action: #selector(rotateGestureHandler(_:)))
@@ -71,15 +71,15 @@ class ViewController: UIViewController {
         }
     }
     
-    func rotateGestureHandler(gesture: UIRotationGestureRecognizer) {
+    func rotateGestureHandler(_ gesture: UIRotationGestureRecognizer) {
         switch gesture.state {
-        case .Began:
+        case .began:
             gravity.removeItem(gesture.view!)
             collision.removeItem(gesture.view!)
             itemBehaviour.removeItem(gesture.view!)
-        case .Changed:
-            gesture.view?.transform = CGAffineTransformMakeRotation(gesture.rotation);
-        case .Ended:
+        case .changed:
+            gesture.view?.transform = CGAffineTransform(rotationAngle: gesture.rotation);
+        case .ended:
             gravity.addItem(gesture.view!)
             collision.addItem(gesture.view!)
             itemBehaviour.addItem(gesture.view!)
@@ -91,13 +91,13 @@ class ViewController: UIViewController {
         gesture.rotation = 1
     }
     
-    func pinchGestureHandler(gesture: UIPinchGestureRecognizer) {
+    func pinchGestureHandler(_ gesture: UIPinchGestureRecognizer) {
         switch gesture.state {
-        case .Began:
+        case .began:
             gravity.removeItem(gesture.view!)
             collision.removeItem(gesture.view!)
             itemBehaviour.removeItem(gesture.view!)
-        case .Changed:
+        case .changed:
             let scale = gesture.scale
             var width: CGFloat = (gesture.view?.frame.width)!  * scale
             var height: CGFloat = (gesture.view?.frame.height)!  * scale
@@ -108,15 +108,15 @@ class ViewController: UIViewController {
             if width != height {
                 height = width
             }
-            let x = gesture.locationInView(view).x - width/2
-            let y = gesture.locationInView(view).y - height/2
+            let x = gesture.location(in: view).x - width/2
+            let y = gesture.location(in: view).y - height/2
             gesture.view?.frame = CGRect(x: x, y: y, width: width, height: width)
             if let obj = gesture.view as? FormObject {
                 if obj.form == "circle" {
                     gesture.view?.layer.cornerRadius = (gesture.view?.frame.width)! / 2
                 }
             }
-        case .Ended:
+        case .ended:
             gravity.addItem(gesture.view!)
             collision.addItem(gesture.view!)
             itemBehaviour.addItem(gesture.view!)
@@ -128,18 +128,18 @@ class ViewController: UIViewController {
         gesture.scale = 1
     }
     
-    func panGestureHandler(gesture: UIPanGestureRecognizer) {
+    func panGestureHandler(_ gesture: UIPanGestureRecognizer) {
         switch gesture.state {
-        case .Began:
+        case .began:
             gravity.removeItem(gesture.view!)
-            attachment = UIAttachmentBehavior(item: gesture.view!, attachedToAnchor: CGPointMake(gesture.view!.center.x, gesture.view!.center.y))
+            attachment = UIAttachmentBehavior(item: gesture.view!, attachedToAnchor: CGPoint(x: gesture.view!.center.x, y: gesture.view!.center.y))
             animator.addBehavior(attachment)
-        case .Changed:
+        case .changed:
             attachment.damping = 100
             attachment.length = 0
             attachment.frequency = 50
-            attachment.anchorPoint = gesture.locationInView(view)
-        case .Ended:
+            attachment.anchorPoint = gesture.location(in: view)
+        case .ended:
             animator.removeBehavior(attachment)
             gravity.addItem(gesture.view!)
         default:
